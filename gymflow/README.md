@@ -1,6 +1,6 @@
 # GymFlow
 
-SaaS multi-tenant para la gestión de gimnasios (prototipo académico de Ingeniería de Software).
+SaaS multi-tenant para la gestión de gimnasios.
 Cada gimnasio se registra, tiene sus propios usuarios y administra socios, planes, control de
 acceso (check-in) y reserva de clases. Los datos de un gimnasio nunca son visibles para otro.
 
