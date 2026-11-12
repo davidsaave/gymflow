@@ -35,20 +35,6 @@ Las 18 pruebas cubren funcionalidad (altas, check-in, renovaciones, cupos) y seg
 (aislamiento entre gimnasios, roles, CSRF, inyección SQL, XSS, bloqueo por intentos, hashing,
 cabeceras y auditoría).
 
-## Despliegue en la nube (PaaS → entregado como SaaS)
-
-1. Sube el proyecto a GitHub.
-2. En [Render](https://render.com) crea un **Web Service** desde el repositorio
-   (o usa **Blueprint** con el archivo `render.yaml` incluido).
-3. Variables de entorno: `SECRET_KEY` (valor aleatorio largo; obligatoria cuando `FORCE_HTTPS=1`), `FORCE_HTTPS=1` y `TRUST_PROXY=1` (para registrar la IP real del cliente detrás del proxy de Render).
-4. Comando de inicio: `gunicorn "app:create_app()" --bind 0.0.0.0:$PORT --workers 2`.
-5. Verifica `https://TU-APP.onrender.com/health`.
-
-URL del despliegue: _(completar con la URL pública si ya está publicado)_
-
-> Nota: el prototipo usa SQLite. En el plan gratuito de Render el disco es efímero, por lo que
-> los datos se reinician en cada despliegue. Para producción se migraría a PostgreSQL gestionado
-> (Render, Supabase o Neon) con copias de seguridad automáticas.
 
 ## Seguridad: mapa OWASP Top 10 (2021)
 
