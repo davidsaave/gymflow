@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ c.name }}{% endblock %}
+{% block content %}
+<h1>{{ c.name }}</h1>
+<p class="muted">{{ c.starts_at }} · {{ c.trainer }} · {{ attendees|length }}/{{ c.capacity }} cupos</p>
+<section class="grid2">
+<form method="post" action="{{ url_for('class_book', class_id=c.id) }}" class="card">
+  <h3>Reservar cupo</h3>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Socio (solo membresías activas)<select name="member_id" required>{% for m in options %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</select></label>
+  <button class="btn" type="submit">Reservar</button>
+</form>
+<div class="card"><h3>Asistentes</h3>
+{% if attendees %}<ul>{% for a in attendees %}<li>{{ a.name }}
+<form method="post" action="{{ url_for('booking_cancel', booking_id=a.id) }}" class="inline"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="link" type="submit">Cancelar</button></form></li>{% endfor %}</ul>
+{% else %}<p class="muted">Sin reservas todavía.</p>{% endif %}</div>
+</section>
+{% endblock %}
