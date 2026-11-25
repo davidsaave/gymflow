@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Perfil público{% endblock %}
+{% block content %}
+<h1>Perfil público</h1>
+<p class="muted">Estos datos son visibles para cualquier persona que visite la página de tu gimnasio.</p>
+<form method="post" class="card narrow">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <h2>{{ gym.name }}</h2>
+  <label>Descripción
+    <textarea name="description" rows="5" maxlength="1200" placeholder="Cuenta qué ofrece tu gimnasio y a quién está dirigido.">{{ gym.description }}</textarea>
+  </label>
+  <label>Dirección<input name="address" maxlength="160" value="{{ gym.address }}"></label>
+  <label>Teléfono de contacto<input name="phone" maxlength="20" value="{{ gym.phone }}"></label>
+  <label>Correo público de contacto<input type="email" name="contact_email" maxlength="120" value="{{ gym.contact_email }}"></label>
+  <label>Horarios de atención<input name="opening_hours" maxlength="200" value="{{ gym.opening_hours }}" placeholder="Ej.: Lunes a viernes, 06:00 a 22:00"></label>
+  <button class="btn" type="submit">Guardar perfil público</button>
+</form>
+{% endblock %}

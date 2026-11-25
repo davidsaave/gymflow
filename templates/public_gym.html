@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ gym.name }}{% endblock %}
+{% block content %}
+<p class="muted"><a href="{{ url_for('index') }}#gyms">← Ver todos los gimnasios</a></p>
+<section class="hero hero-panel public-gym-hero">
+  <div class="hero-copy">
+    <span class="eyebrow">Conoce el gimnasio</span>
+    <h1>{{ gym.name }}</h1>
+    {% if gym.description %}<p>{{ gym.description }}</p>{% endif %}
+    <p>Revisa los planes y las proximas clases disponibles. Cuando quieras empezar, crea tu cuenta y elige tu plan.</p>
+    <div class="hero-actions">
+      <a class="btn" href="{{ url_for('register', role='member', gym_id=gym.id) }}">Inscribirme en este gimnasio</a>
+      <a class="btn ghost" href="{{ url_for('login') }}">Ya tengo cuenta</a>
+    </div>
+  </div>
+</section>
+
+{% if gym.address or gym.phone or gym.contact_email or gym.opening_hours %}
+<section class="card public-contact">
+  <h2>Informacion del gimnasio</h2>
+  <div class="public-contact-grid">
+    {% if gym.address %}<p><strong>Direccion</strong><span>{{ gym.address }}</span></p>{% endif %}
+    {% if gym.phone %}<p><strong>Telefono</strong><a href="tel:{{ gym.phone }}">{{ gym.phone }}</a></p>{% endif %}
+    {% if gym.contact_email %}<p><strong>Correo</strong><a href="mailto:{{ gym.contact_email }}">{{ gym.contact_email }}</a></p>{% endif %}
+    {% if gym.opening_hours %}<p><strong>Horarios</strong><span>{{ gym.opening_hours }}</span></p>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="grid2">
+  <div class="card">
+    <h2>Planes</h2>
+    {% if plans %}
+    <div class="public-detail-list">
+      {% for plan in plans %}
+      <div class="public-detail-item">
+        <div><h3>{{ plan.name }}</h3><span class="muted">{{ plan.duration_days }} dias</span></div>
+        <strong>${{ '{:,}'.format(plan.price).replace(',', '.') }} CLP</strong>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">Este gimnasio aun no publica planes.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>Proximas clases</h2>
+    {% if classes %}
+    <div class="public-detail-list">
+      {% for gym_class in classes %}
+      <div class="public-detail-item">
+        <div><h3>{{ gym_class.name }}</h3><span class="muted">Entrena {{ gym_class.trainer }}</span></div>
+        <span>{{ gym_class.starts_at }} · {{ gym_class.capacity }} cupos</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted">No hay clases futuras publicadas por el momento.</p>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Encuentra tu gimnasio{% endblock %}
+{% block content %}
+<section class="hero hero-panel">
+  <div class="hero-content">
+    <div class="hero-copy">
+      <span class="eyebrow">Tu proximo entrenamiento empieza aqui</span>
+      <h1>Encuentra un gimnasio y empieza a moverte.</h1>
+      <p>Conoce los gimnasios disponibles, revisa sus planes y clases, y elige donde quieres entrenar.</p>
+      <div class="hero-actions">
+        <a class="btn" href="#gyms">Explorar gimnasios</a>
+        <a class="btn ghost" href="{{ url_for('register', role='owner') }}">Administro un gimnasio</a>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="mini-card">
+        <strong>GymFlow para todos</strong>
+        <div class="mini-stats">
+          <div class="mini-stat"><strong>Explora</strong><span>Gimnasios y planes</span></div>
+          <div class="mini-stat"><strong>Elige</strong><span>Tu membresia</span></div>
+          <div class="mini-stat"><strong>Entrena</strong><span>Clases y horarios</span></div>
+        </div>
+      </div>
+      <div class="mini-card">
+        <strong>¿Tienes un gimnasio?</strong>
+        <p>Administra socios, planes, clases y asistencias desde tu propio panel.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gyms" class="public-section">
+  <div class="section-heading">
+    <div>
+      <span class="eyebrow">Para entrenar cerca de ti</span>
+      <h2>Gimnasios en GymFlow</h2>
+    </div>
+    <a class="btn ghost" href="{{ url_for('register', role='member') }}">Crear cuenta de persona</a>
+  </div>
+  <div class="grid3">
+    {% for gym in gyms %}
+    <article class="card public-gym-card">
+      <span class="gym-symbol" aria-hidden="true">G</span>
+      <h3>{{ gym.name }}</h3>
+      {% if gym.description %}<p>{{ gym.description|truncate(130) }}</p>{% endif %}
+      {% if gym.address %}<p class="muted">{{ gym.address }}</p>{% endif %}
+      <p class="muted">{{ gym.plans|length }} planes publicados</p>
+      {% if gym.plans %}
+      <ul class="public-plan-list">
+        {% for plan in gym.plans[:3] %}
+        <li><span>{{ plan.name }} · {{ plan.duration_days }} dias</span>
+          <strong>${{ '{:,}'.format(plan.price).replace(',', '.') }} CLP</strong></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted">Este gimnasio aun no publica planes.</p>
+      {% endif %}
+      <a class="btn" href="{{ url_for('public_gym', gym_id=gym.id) }}">Ver gimnasio y clases</a>
+    </article>
+    {% else %}
+    <article class="card empty-gym">
+      <h3>Pronto habra gimnasios aqui</h3>
+      <p class="muted">Aun no hay gimnasios publicados. Si administras uno, puedes crear su espacio en GymFlow.</p>
+      <a class="btn" href="{{ url_for('register', role='owner') }}">Registrar mi gimnasio</a>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="grid2 public-roles">
+  <article class="card">
+    <span class="eyebrow">Para personas</span>
+    <h3>Elige donde entrenar</h3>
+    <p>Compara los planes y clases publicados por cada gimnasio y crea tu cuenta para inscribirte.</p>
+    <a href="{{ url_for('register', role='member') }}">Crear cuenta de persona</a>
+  </article>
+  <article class="card">
+    <span class="eyebrow">Para dueños</span>
+    <h3>Administra tu gimnasio</h3>
+    <p>Publica tus planes y clases, y organiza socios y asistencias desde el panel de administracion.</p>
+    <a href="{{ url_for('register', role='owner') }}">Crear cuenta de gimnasio</a>
+  </article>
+</section>
+{% endblock %}

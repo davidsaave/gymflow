@@ -2,12 +2,40 @@
 {% block title %}Crear cuenta{% endblock %}
 {% block content %}
 <form method="post" class="card narrow">
-  <h2>Crear cuenta del gimnasio</h2>
+  <h2>{% if account_type == 'member' %}Crear cuenta de persona{% else %}Crear cuenta de gimnasio{% endif %}</h2>
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-  <label>Nombre del gimnasio<input name="gym_name" required maxlength="80" value="{{ gym_name }}"></label>
-  <label>Correo del administrador<input type="email" name="email" required maxlength="120" value="{{ email }}" autocomplete="username"></label>
+  <input type="hidden" name="account_type" value="{{ account_type }}">
+  <div class="account-switch" aria-label="Tipo de cuenta">
+    <a class="{% if account_type == 'member' %}selected{% endif %}" href="{{ url_for('register', role='member') }}">Persona</a>
+    <a class="{% if account_type == 'owner' %}selected{% endif %}" href="{{ url_for('register', role='owner') }}">Dueño de gimnasio</a>
+  </div>
+  {% if account_type == 'member' %}
+  <p class="muted">Elige un gimnasio y un plan para completar tu inscripcion.</p>
+  <label>Tu nombre<input name="name" required minlength="2" maxlength="80" value="{{ member_name }}" autocomplete="name"></label>
+  {% if gyms %}
+  <label>Gimnasio y plan
+    <select name="plan_id" required>
+      <option value="">Selecciona un gimnasio y un plan</option>
+      {% for gym in gyms %}
+      <option value="{{ gym.plan_id }}" {% if selected_plan_id == gym.plan_id %}selected{% endif %}>
+        {{ gym.name }} · {{ gym.plan_name }} · ${{ '{:,}'.format(gym.price).replace(',', '.') }} CLP / {{ gym.duration_days }} dias
+      </option>
+      {% endfor %}
+    </select>
+  </label>
+  {% else %}
+  <div class="flash info">Aun no hay gimnasios con planes publicados. Puedes crear una cuenta cuando haya opciones disponibles.</div>
+  {% endif %}
+  <label class="check"><input type="checkbox" name="consent" value="1" required> Acepto que el gimnasio use mis datos para gestionar mi membresia.</label>
+  {% else %}
+  <label>Nombre del gimnasio<input name="gym_name" required minlength="2" maxlength="80" value="{{ gym_name }}"></label>
+  {% endif %}
+  <label>Correo{% if account_type == 'owner' %} del administrador{% endif %}<input type="email" name="email" required maxlength="120" value="{{ email }}" autocomplete="username"></label>
   <label>Contraseña (mínimo 10, con letras y números)<input type="password" name="password" required minlength="10" maxlength="200" autocomplete="new-password"></label>
   <label>Repetir contraseña<input type="password" name="confirm" required minlength="10" maxlength="200" autocomplete="new-password"></label>
-  <button class="btn" type="submit">Crear cuenta</button>
+  <button class="btn" type="submit" {% if account_type == 'member' and not gyms %}disabled{% endif %}>
+    {% if account_type == 'member' %}Crear cuenta e inscribirme{% else %}Crear gimnasio{% endif %}
+  </button>
+  <p class="muted">¿Ya tienes una cuenta? <a href="{{ url_for('login') }}">Ingresar</a></p>
 </form>
 {% endblock %}

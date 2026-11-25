@@ -34,12 +34,16 @@ DUMMY_HASH = generate_password_hash(secrets.token_hex(8))
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS gyms(
-  id INTEGER PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL);
+  id INTEGER PRIMARY KEY, name TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+  address TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '',
+  contact_email TEXT NOT NULL DEFAULT '', opening_hours TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS users(
   id INTEGER PRIMARY KEY,
   gym_id INTEGER NOT NULL REFERENCES gyms(id) ON DELETE CASCADE,
   email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
-  role TEXT NOT NULL CHECK(role IN ('admin','staff')),
+  role TEXT NOT NULL CHECK(role IN ('admin','staff','member')),
+  member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
   failed_attempts INTEGER NOT NULL DEFAULT 0,
   locked_until REAL NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS plans(
@@ -197,6 +201,19 @@ def login_required(f):
     def wrapper(*a, **k):
         if g.user is None:
             return redirect(url_for("login"))
+        if g.user["role"] == "member":
+            return redirect(url_for("member_portal"))
+        return f(*a, **k)
+    return wrapper
+
+
+def member_required(f):
+    @wraps(f)
+    def wrapper(*a, **k):
+        if g.user is None:
+            return redirect(url_for("login"))
+        if g.user["role"] != "member":
+            abort(403)
         return f(*a, **k)
     return wrapper
 
@@ -263,13 +280,37 @@ def create_app(config=None):
     with closing(sqlite3.connect(app.config["DATABASE"])) as con:
         with con:
             con.executescript(SCHEMA)
+            gym_columns = {row[1] for row in con.execute("PRAGMA table_info(gyms)")}
+            for name in ("description", "address", "phone", "contact_email", "opening_hours"):
+                if name not in gym_columns:
+                    con.execute(f"ALTER TABLE gyms ADD COLUMN {name} TEXT NOT NULL DEFAULT ''")
+            user_schema = con.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='users'").fetchone()[0]
+            user_columns = {row[1] for row in con.execute("PRAGMA table_info(users)")}
+            if "'member'" not in user_schema or "member_id" not in user_columns:
+                con.execute(
+                    "CREATE TABLE users_new("
+                    "id INTEGER PRIMARY KEY,"
+                    "gym_id INTEGER NOT NULL REFERENCES gyms(id) ON DELETE CASCADE,"
+                    "email TEXT NOT NULL UNIQUE,password_hash TEXT NOT NULL,"
+                    "role TEXT NOT NULL CHECK(role IN ('admin','staff','member')),"
+                    "member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,"
+                    "failed_attempts INTEGER NOT NULL DEFAULT 0,"
+                    "locked_until REAL NOT NULL DEFAULT 0,created_at TEXT NOT NULL)")
+                con.execute(
+                    "INSERT INTO users_new(id,gym_id,email,password_hash,role,failed_attempts,"
+                    "locked_until,created_at) "
+                    "SELECT id,gym_id,email,password_hash,role,failed_attempts,locked_until,created_at "
+                    "FROM users")
+                con.execute("DROP TABLE users")
+                con.execute("ALTER TABLE users_new RENAME TO users")
 
     @app.before_request
     def load_user_and_check_csrf():
         g.user = None
         uid = session.get("uid")
         if uid:
-            g.user = one("SELECT id,gym_id,email,role FROM users WHERE id=?", (uid,))
+            g.user = one("SELECT id,gym_id,email,role,member_id FROM users WHERE id=?", (uid,))
             if g.user is None:
                 session.clear()
         if request.method == "POST":
@@ -318,8 +359,34 @@ def create_app(config=None):
     @app.get("/")
     def index():
         if g.user:
-            return redirect(url_for("dashboard"))
-        return render_template("landing.html")
+            return redirect(url_for("member_portal" if g.user["role"] == "member" else "dashboard"))
+        gyms = []
+        for gym in many(
+                "SELECT id,name,description,address FROM gyms ORDER BY name LIMIT 50"):
+            gyms.append({
+                "id": gym["id"],
+                "name": gym["name"],
+                "description": gym["description"],
+                "address": gym["address"],
+                "plans": many(
+                    "SELECT name,price,duration_days FROM plans WHERE gym_id=? ORDER BY duration_days",
+                    (gym["id"],)),
+            })
+        return render_template("guest_home.html", gyms=gyms)
+
+    @app.get("/gyms/<int:gym_id>")
+    def public_gym(gym_id):
+        gym = one("SELECT id,name,description,address,phone,contact_email,opening_hours "
+                  "FROM gyms WHERE id=?", (gym_id,))
+        if gym is None:
+            abort(404)
+        plans = many("SELECT name,price,duration_days FROM plans WHERE gym_id=? ORDER BY duration_days",
+                     (gym_id,))
+        classes = many(
+            "SELECT name,trainer,starts_at,capacity FROM classes "
+            "WHERE gym_id=? AND starts_at>=? ORDER BY starts_at LIMIT 20",
+            (gym_id, now().strftime("%Y-%m-%d %H:%M")))
+        return render_template("public_gym.html", gym=gym, plans=plans, classes=classes)
 
     @app.get("/health")
     def health():
@@ -394,14 +461,50 @@ def create_app(config=None):
             flash("Pregunta eliminada del catálogo público.", "ok")
         return redirect(url_for("chatbot_faqs"))
 
+    @app.route("/gym/profile", methods=["GET", "POST"])
+    @admin_required
+    def gym_profile():
+        gid = g.user["gym_id"]
+        if request.method == "POST":
+            description = clean(request.form.get("description"), 1200)
+            address = clean(request.form.get("address"), 160)
+            phone = clean(request.form.get("phone"), 20)
+            contact_email = clean(request.form.get("contact_email"), 120).lower()
+            opening_hours = clean(request.form.get("opening_hours"), 200)
+            error = None
+            if not PHONE_RE.match(phone):
+                error = "El teléfono solo puede tener números, +, - y espacios."
+            elif contact_email and not EMAIL_RE.match(contact_email):
+                error = "Ingresa un correo de contacto válido."
+            if error:
+                flash(error, "error")
+            else:
+                run("UPDATE gyms SET description=?,address=?,phone=?,contact_email=?,opening_hours=? "
+                    "WHERE id=?",
+                    (description, address, phone, contact_email, opening_hours, gid))
+                audit("gym_profile_update", "perfil público actualizado")
+                flash("Datos públicos del gimnasio actualizados.", "ok")
+                return redirect(url_for("gym_profile"))
+        gym = one("SELECT name,description,address,phone,contact_email,opening_hours "
+                  "FROM gyms WHERE id=?", (gid,))
+        return render_template("gym_profile.html", gym=gym)
+
     @app.route("/register", methods=["GET", "POST"])
     def register():
+        account_type = request.form.get("account_type", request.args.get("role", "owner"))
+        if request.method == "GET" and account_type not in ("owner", "member"):
+            account_type = "owner"
+        gyms = many(
+            "SELECT g.id,g.name,p.id AS plan_id,p.name AS plan_name,p.price,p.duration_days "
+            "FROM gyms g JOIN plans p ON p.gym_id=g.id ORDER BY g.name,p.duration_days")
         if request.method == "POST":
             gym = clean(request.form.get("gym_name"), 80)
             email = clean(request.form.get("email"), 120).lower()
             pw = request.form.get("password", "")[:200]
             error = None
-            if len(gym) < 2:
+            if account_type not in ("owner", "member"):
+                error = "Selecciona un tipo de cuenta válido."
+            elif account_type == "owner" and len(gym) < 2:
                 error = "Ingresa el nombre del gimnasio."
             elif not EMAIL_RE.match(email):
                 error = "Ingresa un correo válido."
@@ -409,24 +512,64 @@ def create_app(config=None):
                 error = "Las contraseñas no coinciden."
             else:
                 error = password_error(pw)
+            selected_plan = None
+            member_name = clean(request.form.get("name"), 80)
+            if not error and account_type == "member":
+                selected_plan = one(
+                    "SELECT p.id,p.gym_id,p.duration_days,g.name AS gym_name "
+                    "FROM plans p JOIN gyms g ON g.id=p.gym_id WHERE p.id=?",
+                    (request.form.get("plan_id", type=int),))
+                if len(member_name) < 2:
+                    error = "Ingresa tu nombre."
+                elif selected_plan is None:
+                    error = "Selecciona un gimnasio y un plan disponibles."
+                elif not request.form.get("consent"):
+                    error = "Debes aceptar el tratamiento de tus datos para inscribirte."
             if not error and one("SELECT 1 FROM users WHERE email=?", (email,)):
                 error = "No se pudo crear la cuenta con esos datos."
             if error:
                 flash(error, "error")
-                return render_template("register.html", gym_name=gym, email=email), 400
+                return render_template(
+                    "register.html", gym_name=gym, email=email, account_type=account_type,
+                    gyms=gyms, selected_gym_id=request.form.get("gym_id", type=int),
+                    selected_plan_id=request.form.get("plan_id", type=int),
+                    member_name=member_name), 400
             ts = now().strftime("%Y-%m-%d %H:%M:%S")
-            gym_id = run("INSERT INTO gyms(name,created_at) VALUES(?,?)", (gym, ts)).lastrowid
-            uid = run("INSERT INTO users(gym_id,email,password_hash,role,created_at) "
-                      "VALUES(?,?,?,?,?)",
-                      (gym_id, email, generate_password_hash(pw), "admin", ts)).lastrowid
-            for n, p, d in (("Mensual", 30000, 30), ("Trimestral", 80000, 90), ("Anual", 280000, 365)):
-                run("INSERT INTO plans(gym_id,name,price,duration_days) VALUES(?,?,?,?)",
-                    (gym_id, n, p, d))
-            audit("register", f"gimnasio '{gym}' creado", gym_id=gym_id, user_id=uid)
+            if account_type == "owner":
+                gym_id = run("INSERT INTO gyms(name,created_at) VALUES(?,?)", (gym, ts)).lastrowid
+                uid = run("INSERT INTO users(gym_id,email,password_hash,role,created_at) "
+                          "VALUES(?,?,?,?,?)",
+                          (gym_id, email, generate_password_hash(pw), "admin", ts)).lastrowid
+                for n, p, d in (("Mensual", 30000, 30), ("Trimestral", 80000, 90),
+                                ("Anual", 280000, 365)):
+                    run("INSERT INTO plans(gym_id,name,price,duration_days) VALUES(?,?,?,?)",
+                        (gym_id, n, p, d))
+                audit("register", f"gimnasio '{gym}' creado", gym_id=gym_id, user_id=uid)
+            else:
+                gym_id = selected_plan["gym_id"]
+                start = today()
+                end = start + timedelta(days=selected_plan["duration_days"])
+                member_id = run(
+                    "INSERT INTO members(gym_id,name,email,plan_id,start_date,end_date,consent_at,created_at) "
+                    "VALUES(?,?,?,?,?,?,?,?)",
+                    (gym_id, member_name, email, selected_plan["id"], start.isoformat(),
+                     end.isoformat(), ts, ts)).lastrowid
+                uid = run("INSERT INTO users(gym_id,email,password_hash,role,member_id,created_at) "
+                          "VALUES(?,?,?,?,?,?)",
+                          (gym_id, email, generate_password_hash(pw), "member", member_id, ts)).lastrowid
+                audit("member_enroll", f"socio #{member_id}", gym_id=gym_id, user_id=uid)
             login_user({"id": uid})
-            flash("¡Cuenta creada! Ya puedes registrar socios.", "ok")
-            return redirect(url_for("dashboard"))
-        return render_template("register.html", gym_name="", email="")
+            flash("¡Inscripción completada! Ya puedes consultar los datos de tu membresía.", "ok")
+            return redirect(url_for("member_portal" if account_type == "member" else "dashboard"))
+        selected_gym_id = request.args.get("gym_id", type=int)
+        selected_plan_id = None
+        if selected_gym_id:
+            selected_plan = one("SELECT id FROM plans WHERE gym_id=? ORDER BY duration_days LIMIT 1",
+                                (selected_gym_id,))
+            selected_plan_id = selected_plan["id"] if selected_plan else None
+        return render_template("register.html", gym_name="", email="", account_type=account_type,
+                               gyms=gyms, selected_gym_id=selected_gym_id,
+                               selected_plan_id=selected_plan_id, member_name="")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -443,7 +586,7 @@ def create_app(config=None):
                 run("UPDATE users SET failed_attempts=0, locked_until=0 WHERE id=?", (user["id"],))
                 login_user(user)
                 audit("login_ok", "", gym_id=user["gym_id"], user_id=user["id"])
-                return redirect(url_for("dashboard"))
+                return redirect(url_for("member_portal" if user["role"] == "member" else "dashboard"))
             if user:
                 attempts = user["failed_attempts"] + 1
                 locked = time.time() + LOCK_SECONDS if attempts >= MAX_ATTEMPTS else 0
@@ -453,6 +596,24 @@ def create_app(config=None):
             flash("Correo o contraseña incorrectos.", "error")
             return render_template("login.html"), 401
         return render_template("login.html")
+
+    @app.get("/my-gym")
+    @member_required
+    def member_portal():
+        member = one(
+            "SELECT m.name,m.email,m.start_date,m.end_date,p.name AS plan_name,"
+            "p.price,p.duration_days,g.id AS gym_id,g.name AS gym_name "
+            "FROM members m JOIN plans p ON p.id=m.plan_id "
+            "JOIN gyms g ON g.id=m.gym_id "
+            "WHERE m.id=? AND m.gym_id=?",
+            (g.user["member_id"], g.user["gym_id"]))
+        if member is None:
+            abort(404)
+        classes = many(
+            "SELECT name,trainer,starts_at,capacity FROM classes "
+            "WHERE gym_id=? AND starts_at>=? ORDER BY starts_at LIMIT 10",
+            (g.user["gym_id"], now().strftime("%Y-%m-%d %H:%M")))
+        return render_template("member_portal.html", member=member, classes=classes)
 
     @app.post("/logout")
     def logout():

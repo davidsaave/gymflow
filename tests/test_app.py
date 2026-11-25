@@ -10,6 +10,8 @@ import tempfile
 import unittest
 from datetime import timedelta
 
+from werkzeug.security import generate_password_hash
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import create_app, now, today  # noqa: E402
 
@@ -114,6 +116,51 @@ class Funcionalidad(Base):
         self.assertIn("Gym Uno", html)
         self.assertIn("Mensual", c.get("/plans").get_data(as_text=True))
 
+    def test_portada_publica_muestra_gimnasios_y_planes(self):
+        owner = self.register("Gym Visible", "admin@visible.cl")
+        self.post(owner, "/gym/profile", {
+            "description": "Entrenamiento para toda la familia.",
+            "address": "Av. Central 123",
+            "phone": "+56 9 1234",
+            "contact_email": "contacto@visible.cl",
+            "opening_hours": "Lunes a viernes",
+        }, page="/gym/profile")
+        guest = self.app.test_client()
+        home = guest.get("/")
+        self.assertEqual(home.status_code, 200)
+        self.assertIn("Gym Visible", home.get_data(as_text=True))
+        detail = guest.get("/gyms/1")
+        self.assertIn("Mensual", detail.get_data(as_text=True))
+        self.assertIn("Entrenamiento para toda la familia.", detail.get_data(as_text=True))
+        self.assertIn("Av. Central 123", detail.get_data(as_text=True))
+        self.assertNotIn("admin@visible.cl", detail.get_data(as_text=True))
+
+    def test_persona_se_inscribe_y_solo_accede_a_su_portal(self):
+        self.register("Gym Uno", "admin@uno.cl")
+        member = self.app.test_client()
+        response = self.post(member, "/register", {
+            "account_type": "member",
+            "name": "Socio Nuevo",
+            "plan_id": "1",
+            "email": "persona@example.com",
+            "password": PASSWORD,
+            "confirm": PASSWORD,
+            "consent": "1",
+        }, page="/register")
+        self.assertEqual(response.status_code, 302)
+        portal = member.get("/my-gym")
+        self.assertEqual(portal.status_code, 200)
+        self.assertIn("Socio Nuevo", portal.get_data(as_text=True))
+        self.assertIn("Mensual", portal.get_data(as_text=True))
+        self.assertEqual(member.get("/members").status_code, 302)
+        returning_member = self.app.test_client()
+        login = self.post(returning_member, "/login", {
+            "email": "persona@example.com",
+            "password": PASSWORD,
+        })
+        self.assertEqual(login.status_code, 302)
+        self.assertEqual(login.location, "/my-gym")
+
     def test_alta_de_socio_requiere_consentimiento(self):
         c = self.register()
         r = self.post(c, "/members", {"name": "Sin Consent", "email": "x@example.com", "plan_id": 1},
@@ -160,6 +207,52 @@ class Funcionalidad(Base):
 
 
 class Seguridad(Base):
+    def test_migracion_conserva_cuentas_existentes(self):
+        fd, legacy_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        try:
+            import sqlite3
+            con = sqlite3.connect(legacy_path)
+            con.executescript("""
+                CREATE TABLE gyms(
+                    id INTEGER PRIMARY KEY, name TEXT NOT NULL, created_at TEXT NOT NULL);
+                CREATE TABLE users(
+                    id INTEGER PRIMARY KEY,
+                    gym_id INTEGER NOT NULL REFERENCES gyms(id) ON DELETE CASCADE,
+                    email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL,
+                    role TEXT NOT NULL CHECK(role IN ('admin','staff')),
+                    failed_attempts INTEGER NOT NULL DEFAULT 0,
+                    locked_until REAL NOT NULL DEFAULT 0, created_at TEXT NOT NULL);
+                INSERT INTO gyms(id,name,created_at) VALUES(1,'Gym Antiguo','2026-01-01');
+            """)
+            con.execute(
+                "INSERT INTO users(gym_id,email,password_hash,role,created_at) VALUES(?,?,?,?,?)",
+                (1, "admin@antiguo.cl", generate_password_hash(PASSWORD), "admin", "2026-01-01"))
+            con.commit()
+            con.close()
+
+            migrated_app = create_app({
+                "TESTING": True,
+                "DATABASE": legacy_path,
+                "CHATBOT_FAQ_FILE": self.faq_path,
+            })
+            client = migrated_app.test_client()
+            response = self.post(client, "/login", {
+                "email": "admin@antiguo.cl",
+                "password": PASSWORD,
+            })
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.location, "/dashboard")
+            con = sqlite3.connect(legacy_path)
+            user_columns = {row[1] for row in con.execute("PRAGMA table_info(users)")}
+            gym_columns = {row[1] for row in con.execute("PRAGMA table_info(gyms)")}
+            con.close()
+            self.assertIn("member_id", user_columns)
+            self.assertIn("description", gym_columns)
+        finally:
+            if os.path.exists(legacy_path):
+                os.remove(legacy_path)
+
     def test_a01_aislamiento_entre_gimnasios(self):
         a = self.register("Gym A", "a@a.cl")
         self.add_member(a, "Socio Secreto")

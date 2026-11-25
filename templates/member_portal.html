@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Mi gimnasio{% endblock %}
+{% block content %}
+<section class="hero hero-panel">
+  <div class="hero-copy">
+    <span class="eyebrow">Tu espacio de entrenamiento</span>
+    <h1>Hola, {{ member.name }}</h1>
+    <p>Consulta los datos de tu membresia y las proximas clases de {{ member.gym_name }}.</p>
+  </div>
+  <div class="hero-visual member-summary">
+    <div class="mini-card">
+      <strong>Tu membresia</strong>
+      <h2>{{ member.plan_name }}</h2>
+      <p>Vigente hasta {{ member.end_date }}</p>
+      <span>${{ '{:,}'.format(member.price).replace(',', '.') }} CLP · {{ member.duration_days }} dias</span>
+    </div>
+  </div>
+</section>
+<section class="grid2">
+  <article class="card">
+    <h2>Tu gimnasio</h2>
+    <h3>{{ member.gym_name }}</h3>
+    <p class="muted">Inscrito desde {{ member.start_date }} · Membresia hasta {{ member.end_date }}</p>
+    <a href="{{ url_for('public_gym', gym_id=member.gym_id) }}">Ver planes y datos publicos del gimnasio</a>
+  </article>
+  <article class="card">
+    <h2>Proximas clases</h2>
+    {% if classes %}
+    <ul class="member-class-list">
+      {% for gym_class in classes %}
+      <li><strong>{{ gym_class.name }}</strong><span>{{ gym_class.starts_at }}</span>
+        <span class="muted">Entrena {{ gym_class.trainer }} · {{ gym_class.capacity }} cupos</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">No hay clases futuras programadas.</p>
+    {% endif %}
+  </article>
+</section>
+<p class="muted">GymFlow registra tu inscripción; los pagos se coordinan directamente con el gimnasio.</p>
+{% endblock %}

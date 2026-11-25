@@ -558,11 +558,87 @@ ul { padding-left: 18px; margin: 6px 0; }
   background: var(--brand-soft);
 }
 
+.public-section { margin: 34px 0; scroll-margin-top: 110px; }
+.section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.section-heading h2 { margin: 8px 0 0; }
+.public-gym-card { display: flex; flex-direction: column; align-items: flex-start; }
+.public-gym-card .btn { margin-top: auto; }
+.gym-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  font-weight: 900;
+}
+.public-plan-list { width: 100%; list-style: none; padding: 0; margin: 8px 0 18px; }
+.public-plan-list li,
+.public-detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.public-plan-list li { font-size: 0.84rem; }
+.public-plan-list strong,
+.public-detail-item > strong { white-space: nowrap; color: var(--brand-strong); }
+.public-roles { margin: 28px 0; }
+.public-roles .card { background: rgba(255,255,255,0.56); }
+.public-roles .eyebrow { margin-bottom: 10px; }
+.public-gym-hero { padding: 34px; }
+.public-detail-list { margin-top: 8px; }
+.public-detail-item h3 { margin: 0; }
+.public-detail-item .muted { display: block; }
+.member-summary { min-height: 210px; justify-content: center; }
+.member-summary h2 { margin: 0 0 6px; color: white; }
+.member-summary p { margin: 0 0 8px; }
+.member-class-list { list-style: none; padding: 0; }
+.member-class-list li { display: grid; gap: 3px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.public-contact { margin: 18px 0; }
+.public-contact-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px 18px; }
+.public-contact-grid p { display: grid; gap: 3px; margin: 8px 0; }
+.public-contact-grid strong { font-size: 0.82rem; color: var(--muted); }
+.public-contact-grid a { overflow-wrap: anywhere; }
+.account-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 5px;
+  margin: 0 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+.account-switch a {
+  padding: 8px;
+  border-radius: 10px;
+  color: var(--muted);
+  text-align: center;
+  text-decoration: none;
+  font-weight: 700;
+}
+.account-switch a.selected { color: var(--brand-strong); background: var(--brand-soft); }
+.empty-gym { grid-column: 1 / -1; }
+button:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
+
 @media (max-width: 720px) {
   .top { justify-content: center; }
   nav { justify-content: center; }
   .hero-content { grid-template-columns: 1fr; }
   .hero-visual { min-height: 220px; }
+  .section-heading { align-items: flex-start; flex-direction: column; }
+  .public-detail-item { align-items: flex-start; flex-direction: column; }
   .user-area { width: 100%; justify-content: center; }
   .chatbot { right: 14px; bottom: 14px; }
 }

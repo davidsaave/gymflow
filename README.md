@@ -3,11 +3,16 @@
 SaaS multi-tenant para la gestión de gimnasios (prototipo académico de Ingeniería de Software).
 Cada gimnasio se registra, tiene sus propios usuarios y administra socios, planes, control de
 acceso (check-in) y reserva de clases. Los datos de un gimnasio nunca son visibles para otro.
+La portada publica permite explorar gimnasios, planes y clases; las personas pueden crear una
+cuenta e inscribirse a un plan, mientras los dueños administran su gimnasio desde un panel privado.
 
 ## Funcionalidades
 
 - Registro del gimnasio (onboarding SaaS) y planes iniciales.
-- Roles: `admin` (todo) y `staff` (socios, check-in y clases).
+- Roles: `admin` (todo), `staff` (socios, check-in y clases) y `member` (portal de su membresía).
+- Sitio público con información de gimnasios, planes y próximas clases.
+- Perfil público editable del gimnasio con descripción, dirección, contacto y horarios.
+- Inscripción de personas a un gimnasio y plan, con acceso a un portal privado de membresía.
 - Socios: alta con consentimiento, edición, renovación y eliminación (derecho de supresión).
 - Control de acceso: el check-in bloquea membresías vencidas y evita duplicados diarios.
 - Clases: programación, reservas con cupos atómicos y cancelación.
@@ -31,7 +36,7 @@ Demo (solo local): `demo@gymflow.cl` / `Demo12345678`
 python -m unittest discover -s tests -v
 ```
 
-Las 18 pruebas cubren funcionalidad (altas, check-in, renovaciones, cupos) y seguridad
+Las pruebas cubren funcionalidad (altas, inscripción de miembros, check-in, renovaciones, cupos) y seguridad
 (aislamiento entre gimnasios, roles, CSRF, inyección SQL, XSS, bloqueo por intentos, hashing,
 cabeceras y auditoría).
 
