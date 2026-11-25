@@ -1,0 +1,52 @@
+[
+  {
+    "id": "plans",
+    "question": "¿Qué planes ofrecen y cuánto cuestan?",
+    "answer": "Planes de referencia de la demo: Mensual (30 días) $30.000 CLP, Trimestral (90 días) $80.000 CLP y Anual (365 días) $280.000 CLP."
+  },
+  {
+    "id": "enrollment",
+    "question": "¿Cuánto cuesta la inscripción?",
+    "answer": "El cargo de inscripción de referencia es de $10.000 CLP, por una sola vez. Es un valor de ejemplo; confirma el precio vigente con el gimnasio."
+  },
+  {
+    "id": "hours",
+    "question": "¿Cuál es el horario de atención?",
+    "answer": "Horario de atención de referencia: lunes a viernes de 06:00 a 22:00 y sábados, domingos y festivos de 08:00 a 14:00. Confirma los horarios vigentes con el gimnasio."
+  },
+  {
+    "id": "personal-training",
+    "question": "¿Cuánto cuesta el entrenamiento personalizado?",
+    "answer": "La sesión de entrenamiento personalizado de referencia cuesta $8.000 CLP por 60 minutos. La disponibilidad y el entrenador deben confirmarse directamente con el gimnasio."
+  },
+  {
+    "id": "location",
+    "question": "¿Dónde están ubicados?",
+    "answer": "Dirección de ejemplo para la demo: Av. Providencia 1234, Providencia, Santiago. Esta dirección es ficticia; reemplázala por la ubicación real del gimnasio antes de publicar la página."
+  },
+  {
+    "id": "register-gym",
+    "question": "¿Cómo registro mi gimnasio en GymFlow?",
+    "answer": "En la página principal, selecciona «Crear cuenta» y completa los datos de tu gimnasio y del administrador."
+  },
+  {
+    "id": "members",
+    "question": "¿Cómo registro o renuevo la membresía de un socio?",
+    "answer": "En el menú «Socios» puedes registrar personas, revisar sus membresías y gestionar renovaciones."
+  },
+  {
+    "id": "checkin",
+    "question": "¿Cómo funciona el check-in?",
+    "answer": "Usa «Check-in» para registrar el ingreso de un socio. El sistema bloquea membresías vencidas y evita duplicar el ingreso diario."
+  },
+  {
+    "id": "classes",
+    "question": "¿Cómo reservo una clase?",
+    "answer": "En «Clases» puedes revisar las clases programadas, reservar un cupo y cancelar una reserva."
+  },
+  {
+    "id": "privacy",
+    "question": "¿Cómo protegen mis datos?",
+    "answer": "Cada gimnasio solo puede consultar sus propios datos. GymFlow también registra el consentimiento al ingresar socios."
+  }
+]

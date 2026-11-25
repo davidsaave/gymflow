@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Ingresar{% endblock %}
+{% block content %}
+<form method="post" class="card narrow">
+  <h2>Ingresar</h2>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Correo<input type="email" name="email" required maxlength="120" autocomplete="username"></label>
+  <label>Contraseña<input type="password" name="password" required maxlength="200" autocomplete="current-password"></label>
+  <button class="btn" type="submit">Ingresar</button>
+  <p class="muted">¿Tu gimnasio aún no está en GymFlow? <a href="{{ url_for('register') }}">Crea una cuenta</a>.</p>
+</form>
+{% endblock %}

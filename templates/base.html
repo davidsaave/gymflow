@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}GymFlow{% endblock %} · GymFlow</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="{{ url_for('index') }}">
+    <span class="brand-mark">G</span>
+    <span>GymFlow</span>
+  </a>
+  {% if g.user %}
+  <nav>
+    <a href="{{ url_for('dashboard') }}">Panel</a>
+    <a href="{{ url_for('members') }}">Socios</a>
+    <a href="{{ url_for('checkin') }}">Check-in</a>
+    <a href="{{ url_for('classes') }}">Clases</a>
+    {% if g.user.role == 'admin' %}
+    <a href="{{ url_for('plans') }}">Planes</a>
+    <a href="{{ url_for('chatbot_faqs') }}">Chatbot</a>
+    <a href="{{ url_for('staff') }}">Equipo</a>
+    <a href="{{ url_for('audit_view') }}">Auditoría</a>
+    {% endif %}
+  </nav>
+  <div class="user-area">
+    <span class="user-pill">{{ g.user.email }}</span>
+    <form method="post" action="{{ url_for('logout') }}" class="inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="link" type="submit">Salir</button>
+    </form>
+  </div>
+  {% else %}
+  <nav>
+    <a href="{{ url_for('login') }}">Ingresar</a>
+    <a href="{{ url_for('register') }}">Crear cuenta</a>
+  </nav>
+  {% endif %}
+</header>
+<main>
+  {% for category, message in get_flashed_messages(with_categories=true) %}
+  <div class="flash {{ category }}" role="status">{{ message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<footer>GymFlow · prototipo académico de Ingeniería de Software · SaaS multi-tenant</footer>
+<section class="chatbot" aria-label="Asistente de ayuda"
+         data-faq-url="{{ url_for('chatbot_faq_api') }}">
+  <div class="chatbot-panel" id="chatbot-panel" hidden>
+    <div class="chatbot-heading">
+      <div>
+        <strong>Ayuda GymFlow</strong>
+        <span>Selecciona una pregunta</span>
+      </div>
+      <button class="chatbot-close" type="button" aria-label="Cerrar chat">×</button>
+    </div>
+    <div class="chatbot-messages" role="log" aria-live="polite" aria-relevant="additions">
+      <p class="chatbot-message bot">¡Hola! Elige una de estas preguntas para recibir información:</p>
+      <div class="chatbot-suggestions" aria-label="Preguntas predeterminadas"></div>
+      <p class="chatbot-message bot chatbot-loading">Cargando preguntas...</p>
+    </div>
+  </div>
+  <button class="chatbot-toggle" type="button" aria-expanded="false" aria-controls="chatbot-panel">
+    <span aria-hidden="true">?</span> Ayuda
+  </button>
+</section>
+<script src="{{ url_for('static', filename='chatbot.js') }}" defer></script>
+</body>
+</html>
