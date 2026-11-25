@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Socios{% endblock %}
+{% block content %}
+<h1>Socios</h1>
+<section class="grid2">
+<form method="post" class="card">
+  <h3>Registrar socio</h3>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Nombre<input name="name" required maxlength="80"></label>
+  <label>Correo<input type="email" name="email" required maxlength="120"></label>
+  <label>Teléfono<input name="phone" maxlength="20"></label>
+  <label>Plan<select name="plan_id" required>{% for p in plans %}<option value="{{ p.id }}">{{ p.name }} (${{ '{:,}'.format(p.price).replace(',', '.') }})</option>{% endfor %}</select></label>
+  <label class="check"><input type="checkbox" name="consent" value="1" required> El socio autoriza el tratamiento de sus datos personales para la gestión de su membresía.</label>
+  <button class="btn" type="submit">Registrar</button>
+</form>
+<form method="get" class="card">
+  <h3>Buscar</h3>
+  <label>Nombre o correo<input name="q" maxlength="60" value="{{ q }}"></label>
+  <label>Estado<select name="status">
+    <option value="">Todos</option>
+    <option value="active" {% if status == 'active' %}selected{% endif %}>Activos</option>
+    <option value="expired" {% if status == 'expired' %}selected{% endif %}>Vencidos</option></select></label>
+  <button class="btn ghost" type="submit">Filtrar</button>
+</form>
+</section>
+<div class="tablewrap"><table>
+  <thead><tr><th>Nombre</th><th>Correo</th><th>Plan</th><th>Vence</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for m in rows %}
+  <tr><td>{{ m.name }}</td><td>{{ m.email }}</td><td>{{ m.plan_name }}</td><td>{{ m.end_date }}</td>
+      <td>{% if m.end_date >= today %}<span class="badge ok">Activo</span>{% else %}<span class="badge bad">Vencido</span>{% endif %}</td>
+      <td><a href="{{ url_for('member_detail', member_id=m.id) }}">Gestionar</a></td></tr>
+  {% else %}<tr><td colspan="6" class="muted">No hay socios para mostrar.</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+{% endblock %}

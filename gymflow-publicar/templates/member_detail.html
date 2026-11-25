@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}{{ m.name }}{% endblock %}
+{% block content %}
+<h1>{{ m.name }}</h1>
+<p class="muted">Plan {{ plan.name }} · vigente hasta {{ m.end_date }} · consentimiento registrado el {{ m.consent_at }}</p>
+<section class="grid2">
+<form method="post" class="card">
+  <h3>Datos del socio</h3>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <label>Nombre<input name="name" required maxlength="80" value="{{ m.name }}"></label>
+  <label>Correo<input type="email" name="email" required maxlength="120" value="{{ m.email }}"></label>
+  <label>Teléfono<input name="phone" maxlength="20" value="{{ m.phone }}"></label>
+  <button class="btn" type="submit">Guardar</button>
+</form>
+<div class="card">
+  <h3>Renovar membresía</h3>
+  <form method="post" action="{{ url_for('member_renew', member_id=m.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Plan<select name="plan_id">{% for p in plans %}<option value="{{ p.id }}">{{ p.name }}</option>{% endfor %}</select></label>
+    <button class="btn" type="submit">Renovar</button>
+  </form>
+  <h3>Últimas visitas</h3>
+  {% if visits %}<ul>{% for v in visits %}<li>{{ v.day }}</li>{% endfor %}</ul>{% else %}<p class="muted">Sin visitas registradas.</p>{% endif %}
+  {% if g.user.role == 'admin' %}
+  <h3>Eliminar socio</h3>
+  <p class="muted">Borra al socio y todos sus registros (derecho de supresión).</p>
+  <form method="post" action="{{ url_for('member_delete', member_id=m.id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn danger" type="submit">Eliminar definitivamente</button>
+  </form>
+  {% endif %}
+</div>
+</section>
+{% endblock %}
